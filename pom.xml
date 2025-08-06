@@ -108,5 +108,12 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${maven-plugin}</version>
+      </plugin>
+    </plugins>
   </build>
 </project> 
