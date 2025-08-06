@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: crm-auth-service
+    env: java
+    buildCommand: mvn clean install -DskipTests
+    startCommand: mvn spring-boot:run
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: crm-postgres
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: crm-postgres
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: crm-postgres
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: "86400000"
+      - key: RABBITMQ_HOST
+        fromService:
+          type: redis
+          name: crm-redis
+          property: host
+      - key: RABBITMQ_PORT
+        value: "6379"
+      - key: RABBITMQ_USERNAME
+        fromService:
+          type: redis
+          name: crm-redis
+          property: user
+      - key: RABBITMQ_PASSWORD
+        fromService:
+          type: redis
+          name: crm-redis
+          property: password
+
+databases:
+  - name: crm-postgres
+    databaseName: crm_db
+    user: crm_user
+
+services:
+  - type: redis
+    name: crm-redis
+    plan: free 
