@@ -11,8 +11,8 @@
     <module>backend/discovery-server</module>
     <module>backend/auth-service</module>
     <module>backend/customer-service</module>
-    <module>backend/sales-service</module>
-    <module>backend/task-service</module>
+    <!-- <module>backend/sales-service</module> -->
+    <!-- <module>backend/task-service</module> -->
     <module>backend/notification-service</module>
     <module>backend/crm-gateway</module>
   </modules>
