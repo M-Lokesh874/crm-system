@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { customerApiService } from '@/lib/api';
 
 interface Customer {
   id: number;
@@ -32,12 +33,9 @@ export default function DashboardPage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/v1/customers');
-      if (response.ok) {
-        const data = await response.json();
-        const customersArray = data.content || data;
-        setCustomers(customersArray);
-      }
+      const data = await customerApiService.getCustomers();
+      const customersArray = data.content || data;
+      setCustomers(customersArray);
     } catch (error) {
       console.error('Error fetching customers:', error);
     } finally {

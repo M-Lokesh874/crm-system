@@ -19,11 +19,4 @@ services:
         value: 86400000
       - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: https://crm-discovery-service.onrender.com/eureka/
-      - key: REDIS_URL
-        sync: false
-      - key: REDIS_HOST
-        sync: false
-      - key: REDIS_PORT
-        value: 6379
-      - key: REDIS_PASSWORD
-        sync: false 
+      # Redis configuration removed for deployment without notification service 

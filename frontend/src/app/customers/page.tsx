@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Users, TrendingUp, DollarSign, Package } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { customerApiService } from '@/lib/api';
 
 interface Customer {
   id: number;
@@ -56,17 +57,11 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     console.log('🔍 Fetching customers...');
     try {
-      const response = await fetch('http://localhost:8081/api/v1/customers');
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Customers fetched:', data);
-        // Handle paginated response - extract content array
-        const customersArray = data.content || data;
-        setCustomers(customersArray);
-      } else {
-        console.error('❌ Failed to fetch customers:', response.status);
-        setNotification({ type: 'error', message: 'Failed to fetch customers' });
-      }
+      const data = await customerApiService.getCustomers();
+      console.log('✅ Customers fetched:', data);
+      // Handle paginated response - extract content array
+      const customersArray = data.content || data;
+      setCustomers(customersArray);
     } catch (error) {
       console.error('❌ Error fetching customers:', error);
       setNotification({ type: 'error', message: 'Error fetching customers' });
@@ -81,35 +76,24 @@ export default function CustomersPage() {
     setIsCreating(true);
     
     try {
-      const response = await fetch('http://localhost:8081/api/v1/customers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          assignedTo: formData.assignedTo || user?.username || 'admin'
-        }),
+      await customerApiService.createCustomer({
+        ...formData,
+        assignedTo: formData.assignedTo || user?.username || 'admin'
       });
 
-      if (response.ok) {
-        console.log('✅ Customer created successfully');
-        setNotification({ type: 'success', message: 'Customer created successfully!' });
-        setShowCreateForm(false);
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          company: '',
-          status: 'ACTIVE',
-          assignedTo: ''
-        });
-        fetchCustomers();
-      } else {
-        console.error('❌ Failed to create customer:', response.status);
-        setNotification({ type: 'error', message: 'Failed to create customer' });
-      }
+      console.log('✅ Customer created successfully');
+      setNotification({ type: 'success', message: 'Customer created successfully!' });
+      setShowCreateForm(false);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        company: '',
+        status: 'ACTIVE',
+        assignedTo: ''
+      });
+      fetchCustomers();
     } catch (error) {
       console.error('❌ Error creating customer:', error);
       setNotification({ type: 'error', message: 'Error creating customer' });

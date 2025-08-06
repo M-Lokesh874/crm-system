@@ -1,12 +1,29 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { LoginRequest, RegisterRequest, LoginResponse, RegisterResponse, User, ApiError } from '@/types/auth';
 
-// API Configuration - Connect to Gateway
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8085';
+// API Configuration - Phase 1: Direct service connections
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Create axios instance
-const api: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+// Service URLs
+const AUTH_SERVICE_URL = isProduction 
+  ? 'https://crm-auth-service.onrender.com'
+  : 'http://localhost:8085';
+
+const CUSTOMER_SERVICE_URL = isProduction
+  ? 'https://crm-customer-service.onrender.com'
+  : 'http://localhost:8081';
+
+// Create axios instances for each service
+const authApi: AxiosInstance = axios.create({
+  baseURL: AUTH_SERVICE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+const customerApi: AxiosInstance = axios.create({
+  baseURL: CUSTOMER_SERVICE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -14,78 +31,83 @@ const api: AxiosInstance = axios.create({
 });
 
 // Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+const addAuthToken = (config: any) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+  return config;
+};
+
+authApi.interceptors.request.use(addAuthToken);
+customerApi.interceptors.request.use(addAuthToken);
 
 // Response interceptor to handle token refresh
-api.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config;
+const handleTokenRefresh = async (error: AxiosError, api: AxiosInstance) => {
+  const originalRequest = error.config;
+  
+  if (error.response?.status === 401 && originalRequest) {
+    const refreshToken = localStorage.getItem('refresh_token');
     
-    if (error.response?.status === 401 && originalRequest) {
-      const refreshToken = localStorage.getItem('refresh_token');
-      
-      if (refreshToken) {
-        try {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
-          
-          const { token } = response.data;
-          localStorage.setItem('auth_token', token);
-          
-          // Retry original request
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, redirect to login
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/auth/login';
-          return Promise.reject(refreshError);
-        }
+    if (refreshToken) {
+      try {
+        const response = await axios.post(`${AUTH_SERVICE_URL}/auth/refresh`, {
+          refreshToken,
+        });
+        
+        const { token } = response.data;
+        localStorage.setItem('auth_token', token);
+        
+        // Retry original request
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/auth/login';
+        return Promise.reject(refreshError);
       }
     }
-    
-    return Promise.reject(error);
   }
+  
+  return Promise.reject(error);
+};
+
+authApi.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => handleTokenRefresh(error, authApi)
 );
 
-// Auth API methods - Connect to our Auth Service
-export const authApi = {
+customerApi.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => handleTokenRefresh(error, customerApi)
+);
+
+// Auth API methods - Connect to Auth Service
+export const authApiService = {
   // Login
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>('/auth/login', credentials);
+    const response = await authApi.post<LoginResponse>('/auth/login', credentials);
     return response.data;
   },
 
   // Register
   register: async (userData: RegisterRequest): Promise<RegisterResponse> => {
-    const response = await api.post<RegisterResponse>('/auth/register', userData);
+    const response = await authApi.post<RegisterResponse>('/auth/register', userData);
     return response.data;
   },
 
   // Get current user profile
   getProfile: async (): Promise<User> => {
-    const response = await api.get<User>('/auth/profile');
+    const response = await authApi.get<User>('/auth/profile');
     return response.data;
   },
 
   // Validate token
   validateToken: async (): Promise<boolean> => {
     try {
-      await api.get('/auth/validate');
+      await authApi.get('/auth/validate');
       return true;
     } catch (error) {
       return false;
@@ -94,7 +116,46 @@ export const authApi = {
 
   // Refresh token
   refreshToken: async (refreshToken: string): Promise<{ token: string }> => {
-    const response = await api.post<{ token: string }>('/auth/refresh', { refreshToken });
+    const response = await authApi.post<{ token: string }>('/auth/refresh', { refreshToken });
+    return response.data;
+  },
+};
+
+// Customer API methods - Connect to Customer Service
+export const customerApiService = {
+  // Get all customers
+  getCustomers: async (page = 0, size = 10) => {
+    const response = await customerApi.get(`/customers?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  // Get customer by ID
+  getCustomer: async (id: string) => {
+    const response = await customerApi.get(`/customers/${id}`);
+    return response.data;
+  },
+
+  // Create customer
+  createCustomer: async (customerData: any) => {
+    const response = await customerApi.post('/customers', customerData);
+    return response.data;
+  },
+
+  // Update customer
+  updateCustomer: async (id: string, customerData: any) => {
+    const response = await customerApi.put(`/customers/${id}`, customerData);
+    return response.data;
+  },
+
+  // Delete customer
+  deleteCustomer: async (id: string) => {
+    const response = await customerApi.delete(`/customers/${id}`);
+    return response.data;
+  },
+
+  // Get customer statistics
+  getCustomerStats: async () => {
+    const response = await customerApi.get('/customers/stats');
     return response.data;
   },
 };
@@ -113,4 +174,6 @@ export const handleApiError = (error: AxiosError): string => {
   return error.message || 'An unexpected error occurred';
 };
 
-export default api; 
+// Export for backward compatibility
+export const authApi = authApiService;
+export default authApi; 
