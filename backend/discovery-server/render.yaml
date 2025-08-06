@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: crm-discovery-server
+    env: java
+    buildCommand: mvn clean install -DskipTests
+    startCommand: mvn spring-boot:run -pl backend/discovery-server
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 8761
+      - key: EUREKA_HOSTNAME
+        value: crm-discovery-server.onrender.com 
