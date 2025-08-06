@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: crm-auth-service
+    name: crm-customer-service
     env: java
     buildCommand: mvn clean install -DskipTests
     startCommand: mvn spring-boot:run
@@ -13,10 +13,6 @@ services:
         value: crm_user
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
-      - key: JWT_SECRET
-        value: crmAuthSecretKeyForJWTTokenGeneration2024
-      - key: JWT_EXPIRATION
-        value: 86400000
       - key: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
         value: https://crm-discovery-service.onrender.com/eureka/
       - key: REDIS_URL
