@@ -4,12 +4,8 @@ FROM openjdk:21-jdk-slim
 # Set the working directory
 WORKDIR /app
 
-# Copy the entire project
-COPY . .
-
-# Build the application from the root directory
-RUN apt-get update && apt-get install -y maven
-RUN mvn clean install -DskipTests -pl backend/crm-common,backend/discovery-server
+# Copy the pre-built JAR (we'll build it locally first)
+COPY backend/discovery-server/target/discovery-server-1.0-SNAPSHOT.jar ./discovery-server.jar
 
 # Expose the port
 EXPOSE 8761
@@ -18,4 +14,4 @@ EXPOSE 8761
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 # Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar backend/discovery-server/target/discovery-server-1.0-SNAPSHOT.jar"] 
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar discovery-server.jar"] 
