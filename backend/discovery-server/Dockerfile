@@ -9,7 +9,7 @@ COPY . .
 
 # Build the application from the root directory
 RUN apt-get update && apt-get install -y maven
-RUN mvn clean install -DskipTests -pl backend/discovery-server
+RUN mvn clean install -DskipTests -pl backend/crm-common,backend/discovery-server
 
 # Expose the port
 EXPOSE 8761
