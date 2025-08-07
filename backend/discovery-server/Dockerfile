@@ -1,17 +1,5 @@
-# Use OpenJDK 21 as base image
-FROM openjdk:21-jdk-slim
-
-# Set the working directory
+FROM amazoncorretto:21-alpine
 WORKDIR /app
-
-# Copy the pre-built JAR (we'll build it locally first)
-COPY backend/discovery-server/target/discovery-server-1.0-SNAPSHOT.jar ./discovery-server.jar
-
-# Expose the port
+COPY target/discovery-server-1.0-SNAPSHOT.jar app.jar
 EXPOSE 8761
-
-# Set JVM options for better performance
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar discovery-server.jar"] 
+ENTRYPOINT ["java","-jar","app.jar"] 
